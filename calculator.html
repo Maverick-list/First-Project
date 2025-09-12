@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Animated Calculator</title>
+  <style>
+    :root{
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,0.08);
+      --panel-2: rgba(255,255,255,0.12);
+      --text: #eef3ff;
+      --muted: #b6c2e0;
+      --accent: #6ee7b7; /* emerald */
+      --op: #7c93ff;     /* indigo-ish */
+      --warn: #ff6b6b;
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+      --glass: backdrop-filter: blur(14px) saturate(120%);
+    }
+    [data-theme="light"]{
+      --bg:#f0f7ff;
+      --panel: rgba(255,255,255,0.7);
+      --panel-2: rgba(255,255,255,0.9);
+      --text:#111827;
+      --muted:#334155;
+      --accent:#0ea5e9;
+      --op:#6366f1;
+      --warn:#ef4444;
+      --shadow: 0 10px 30px rgba(2,6,23,.15);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1c2a52 0%, transparent 60%),
+                  radial-gradient(1200px 800px at 120% 120%, #17334d 0%, transparent 50%), var(--bg);
+      color:var(--text); display:grid; place-items:center; padding:24px;
+    }
+    .wrap{width:min(420px, 92vw)}
+    .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+    .chip{font-size:12px; padding:8px 12px; border-radius:999px; background:var(--panel); border:1px solid rgba(255,255,255,.12); box-shadow:var(--shadow)}
+    .chip button{background:transparent; border:none; color:inherit; cursor:pointer}
+
+    .card{border-radius:22px; background:var(--panel); border:1px solid rgba(255,255,255,.14); box-shadow:var(--shadow); padding:16px 16px 18px; position:relative; overflow:hidden}
+    .card:before{content:""; position:absolute; inset:-2px; background:radial-gradient(600px 300px at -10% -10%, rgba(255,255,255,.25), transparent 60%)}
+
+    .display{border-radius:18px; background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03)); border:1px solid rgba(255,255,255,.14); padding:14px 14px 10px; min-height:94px; display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:8px}
+    .expr{color:var(--muted); font-size:14px; word-wrap:break-word; width:100%; text-align:right}
+    .result{font-weight:700; font-size:36px; letter-spacing:.3px; min-height:40px}
+
+    .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px}
+    .btn{height:58px; border-radius:16px; border:1px solid rgba(255,255,255,.14); background:var(--panel-2); color:var(--text); font-size:18px; font-weight:600; cursor:pointer; transition: transform .06s ease, background .2s ease, box-shadow .2s ease; box-shadow: 0 2px 0 rgba(255,255,255,.08) inset, 0 8px 20px rgba(0,0,0,.18)}
+    .btn:hover{transform:translateY(-2px)}
+    .btn:active{transform:scale(.97)}
+    .btn.op{background: linear-gradient(180deg, rgba(124,147,255,.95), rgba(124,147,255,.75)); color:#0b1020}
+    .btn.eq{background: linear-gradient(180deg, rgba(110,231,183,1), rgba(110,231,183,.85)); color:#083344}
+    .btn.warn{background: linear-gradient(180deg, rgba(255,107,107,.96), rgba(255,107,107,.8)); color:#2b0b0b}
+    .btn.wide{grid-column: span 2}
+
+    .toolbar{display:flex; align-items:center; justify-content:space-between; margin-top:12px; gap:10px}
+    .toggle{display:inline-flex; gap:6px; align-items:center; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:var(--panel)}
+    .toggle input{accent-color:var(--accent)}
+
+    .history{max-height:0; overflow:hidden; transition:max-height .3s ease; margin-top:10px}
+    .history.open{max-height:210px}
+    .history ul{margin:0; padding:0; list-style:none}
+    .history li{display:flex; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); margin-bottom:8px; cursor:pointer}
+    .muted{color:var(--muted)}
+    .shake{animation:shake .28s linear}
+    @keyframes shake { 0%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}100%{transform:translateX(0)} }
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="chip">Animated Calculator</div>
+      <div class="chip"><button id="themeBtn" aria-label="Toggle theme">🌗 Theme</button></div>
+    </div>
+
+    <div class="card" id="card">
+      <div class="display" id="display">
+        <div class="expr" id="expr">0</div>
+        <div class="result" id="result">&nbsp;</div>
+      </div>
+
+      <div class="grid" role="group" aria-label="Calculator keypad">
+        <button class="btn warn" data-key="AC">AC</button>
+        <button class="btn op" data-key="±" aria-label="Toggle sign">±</button>
+        <button class="btn op" data-key="%">%</button>
+        <button class="btn op" data-key="/">÷</button>
+
+        <button class="btn" data-key="7">7</button>
+        <button class="btn" data-key="8">8</button>
+        <button class="btn" data-key="9">9</button>
+        <button class="btn op" data-key="*">×</button>
+
+        <button class="btn" data-key="4">4</button>
+        <button class="btn" data-key="5">5</button>
+        <button class="btn" data-key="6">6</button>
+        <button class="btn op" data-key="-">−</button>
+
+        <button class="btn" data-key="1">1</button>
+        <button class="btn" data-key="2">2</button>
+        <button class="btn" data-key="3">3</button>
+        <button class="btn op" data-key="+">+</button>
+
+        <button class="btn" data-key="(">(</button>
+        <button class="btn" data-key=")">)</button>
+        <button class="btn" data-key="0">0</button>
+        <button class="btn" data-key=".">.</button>
+
+        <button class="btn" data-key="BACK" aria-label="Backspace">⌫</button>
+        <button class="btn eq wide" data-key="=">=</button>
+      </div>
+
+      <div class="toolbar">
+        <label class="toggle"><input type="checkbox" id="soundChk" checked> Click sound</label>
+        <button id="historyBtn" class="chip">History</button>
+      </div>
+
+      <div class="history" id="history">
+        <ul id="historyList"></ul>
+        <p class="muted" id="noHist">Belum ada riwayat.</p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:10px">Tip: pakai keyboard (0-9, + - * / . ( ) Enter, Backspace, C, %)</p>
+  </div>
+
+  <script>
+    // ---------- Audio (click) ----------
+    let audioCtx = null; const beepOn = () => document.getElementById('soundChk').checked;
+    function beep(freq=520, len=40){ if(!beepOn()) return; if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value=freq; g.gain.value=0.06; o.start(); setTimeout(()=>{o.stop(); o.disconnect(); g.disconnect();}, len); }
+
+    // ---------- Expression engine (tokenize -> RPN -> eval) ----------
+    const isDigit = ch => /[0-9]/.test(ch);
+    const isOp = ch => /[+\-*/]/.test(ch);
+    const prec = { '+':1, '-':1, '*':2, '/':2 };
+    const left = { '+':true, '-':true, '*':true, '/':true };
+
+    function tokenize(expr){
+      const t=[]; let i=0; while(i<expr.length){ const ch=expr[i]; if(ch===' '){i++; continue}
+        if(isDigit(ch)||ch==='.') { let num=ch; i++; while(i<expr.length && (isDigit(expr[i])||expr[i]==='.')) num+=expr[i++]; t.push(num); continue; }
+        if(isOp(ch) || ch==='(' || ch===')'){ t.push(ch); i++; continue; }
+        if(ch==='%'){ t.push('%'); i++; continue; }
+        i++; // ignore
+      } return t;
+    }
+    function toRPN(tokens){
+      const out=[], st=[]; let prev=null; for(const tk of tokens){
+        if(!isNaN(Number(tk))) out.push(tk);
+        else if(isOp(tk)){
+          if(tk==='-' && (prev===null || isOp(prev) || prev==='(')) out.push('0'); // unary minus
+          while(st.length && isOp(st[st.length-1]) && ((left[tk] && prec[tk] <= prec[st[st.length-1]]) || (!left[tk] && prec[tk] < prec[st[st.length-1]]))) out.push(st.pop());
+          st.push(tk);
+        } else if(tk==='%') out.push('%');
+        else if(tk==='(') st.push(tk);
+        else if(tk===')'){ while(st.length && st[st.length-1]!== '(') out.push(st.pop()); st.pop(); }
+        prev=tk;
+      }
+      while(st.length) out.push(st.pop());
+      return out;
+    }
+    function evalRPN(rpn){
+      const st=[]; for(const tk of rpn){
+        if(!isNaN(Number(tk))) st.push(Number(tk));
+        else if(tk==='%'){ const a=st.pop(); if(a===undefined) throw Error('bad %'); st.push(a/100); }
+        else if(isOp(tk)) { const b=st.pop(), a=st.pop(); if(a===undefined||b===undefined) throw Error('bad expr');
+          switch(tk){ case '+': st.push(a+b); break; case '-': st.push(a-b); break; case '*': st.push(a*b); break; case '/': st.push(b===0?NaN:a/b); break; }
+        }
+      }
+      if(st.length!==1) throw Error('bad expr'); return st[0];
+    }
+    function safeEval(expr){ const tokens = tokenize(expr); const rpn = toRPN(tokens); return evalRPN(rpn); }
+    function fmt(n){ if(!isFinite(n)) return 'Error'; let out = n.toLocaleString(undefined,{ maximumFractionDigits: 10 }); if(out.replace(/[^0-9]/g,'').length>16) out=n.toExponential(6); if(out.length>18) out=out.slice(0,18); return out; }
+
+    // ---------- State & DOM ----------
+    const exprEl = document.getElementById('expr');
+    const resultEl = document.getElementById('result');
+    const display = document.getElementById('display');
+    const themeBtn = document.getElementById('themeBtn');
+    const historyBox = document.getElementById('history');
+    const historyBtn = document.getElementById('historyBtn');
+    const historyList = document.getElementById('historyList');
+    const noHist = document.getElementById('noHist');
+
+    let expr = '0';
+    let hist = [];
+
+    function render(){
+      exprEl.textContent = expr.replace(/\*/g,'×').replace(/\//g,'÷');
+      try{ const val = safeEval(expr.replace(/×/g,'*').replace(/÷/g,'/')); resultEl.textContent = isNaN(val)?'Error':fmt(val); }
+      catch{ resultEl.textContent = '\u00A0'; }
+    }
+
+    function setExpr(next){ expr = next || '0'; render(); }
+
+    function append(ch){
+      // sound
+      beep();
+      if(expr==='0' && /[0-9.]/.test(ch)) expr = ch==='.'? '0.' : ch;
+      else if(/[+\-*/]/.test(ch)){
+        if(/([+\*/(]|^)$/.test(expr.slice(-1))) { // allow unary minus
+          if(ch==='-') expr += ch; else return; 
+        } else expr += ch;
+      } else if(ch==='%') {
+        if(/[0-9)]$/.test(expr)) expr += '%';
+      } else if(ch==='.'){
+        const seg = expr.split(/[^0-9.]/).pop() || '';
+        if(seg.includes('.')) return; else expr += '.';
+      } else if(ch==='(') expr += '(';
+      else if(ch===')') expr += ')';
+      else expr += ch;
+      render();
+    }
+
+    function clearAll(){ beep(640); setExpr('0'); }
+    function back(){ beep(520); if(expr.length<=1) setExpr('0'); else setExpr(expr.slice(0,-1)); }
+    function toggleSign(){ beep(560); // toggle last number sign
+      const tokens = tokenize(expr);
+      let i = tokens.length-1; while(i>=0 && isOp(tokens[i])) i--; if(i<0) return;
+      let j=i; while(j-1>=0 && !isNaN(Number(tokens[j-1])) && tokens[j-1] !== '%') j--;
+      const before = tokens.slice(0,j); const target = tokens.slice(j,i+1).join(''); const after = tokens.slice(i+1);
+      const newNum = target.startsWith('-')? target.slice(1) : '-'+target;
+      const rebuilt = [...before,newNum,...after].join(''); setExpr(rebuilt);
+    }
+    function equals(){ beep(500); try{ const val = safeEval(expr); if(isNaN(val) || !isFinite(val)) throw Error('math'); const out = String(val); pushHistory(expr, out); setExpr(out); resultEl.textContent='\u00A0'; } catch{ flashError(); } }
+
+    function flashError(){ display.classList.remove('shake'); void display.offsetWidth; display.classList.add('shake'); }
+
+    function pushHistory(e, r){ hist.unshift({e, r}); if(hist.length>8) hist.pop(); drawHistory(); }
+    function drawHistory(){ historyList.innerHTML=''; if(hist.length===0){ noHist.style.display='block'; return;} noHist.style.display='none'; hist.forEach((it,idx)=>{ const li=document.createElement('li'); const lhs=document.createElement('span'); lhs.textContent=it.e; lhs.className='muted'; const rhs=document.createElement('strong'); rhs.textContent=it.r; li.append(lhs,rhs); li.title='Klik untuk pakai lagi'; li.onclick=()=>{ setExpr(String(it.r)); }; historyList.appendChild(li); }); }
+
+    // keypad clicks
+    document.querySelectorAll('.btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const k = btn.getAttribute('data-key');
+        if(!k) return;
+        if(k==='AC') return clearAll();
+        if(k==='BACK') return back();
+        if(k==='±') return toggleSign();
+        if(k==='=') return equals();
+        append(k);
+      });
+    });
+
+    // keyboard
+    window.addEventListener('keydown', (e)=>{
+      const k = e.key;
+      if('0123456789+-*/().%'.includes(k)) { e.preventDefault(); append(k); }
+      else if(k==='Enter') { e.preventDefault(); equals(); }
+      else if(k==='Backspace') { e.preventDefault(); back(); }
+      else if(k.toLowerCase()==='c') { e.preventDefault(); clearAll(); }
+    });
+
+    // theme toggle
+    themeBtn.addEventListener('click', ()=>{
+      const root = document.documentElement; const isDark = root.getAttribute('data-theme')==='dark';
+      root.setAttribute('data-theme', isDark? 'light':'dark');
+      // playful accent swap
+      document.body.animate([{opacity:0.6},{opacity:1}],{duration:260, easing:'ease-out'});
+    });
+
+    // history toggle
+    historyBtn.addEventListener('click', ()=>{
+      historyBox.classList.toggle('open');
+    });
+
+    // init
+    render(); drawHistory();
+  </script>
+</body>
+</html>

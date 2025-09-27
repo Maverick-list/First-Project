@@ -11,7 +11,104 @@
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="styles.css">
+ <style>
+    :root {
+    --bg: #ffffff;
+    --paper: #fbfbfb;
+    --text: #0b1226;
+    --muted: #6b7280;
+    --accent: #1d4ed8;
+    --card-shadow: 0 8px 24px rgba(9, 30, 66, 0.08);
+  }
+  
+  /* Reset sederhana */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Body dengan konten di tengah */
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;   /* Tengah horizontal */
+    align-items: flex-start;   /* Atas (biar bisa scroll kalau panjang) */
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  
+  /* Container utama */
+  .container {
+    max-width: 900px;
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Header */
+  header.site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  .brand {
+    font-family: "Libre Baskerville", serif;
+    font-size: 1.8rem;
+    font-weight: bold;
+  }
+  .nav {
+    display: flex;
+    gap: 12px;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn.ghost {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  
+  /* Artikel */
+  .content h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .content h2 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.4rem;
+  }
+  .content p, .content li {
+    margin-bottom: 1rem;
+    color: #444;
+  }
+  .content ul {
+    padding-left: 20px;
+  }
+  
+  /* Footer */
+  footer {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  
+  </style>
 </head>
 <body>
 <div class="container">
@@ -105,6 +202,91 @@
 </div>
 
 <!-- JS -->
-<script src="script.js"></script>
+<script>
+    (function(){
+    const btnDark = document.getElementById('btn-dark');
+    const btnRead = document.getElementById('btn-read');
+    const btnShare = document.getElementById('btn-share');
+    const btnPrint = document.getElementById('btn-print');
+    const btnPdf = document.getElementById('btn-download-pdf');
+  
+    function setDark(on){
+      if(on){
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('darkmode','1');
+        btnDark.textContent = 'Light';
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.removeItem('darkmode');
+        btnDark.textContent = 'Dark';
+      }
+    }
+  
+    const saved = localStorage.getItem('darkmode')==='1';
+    setDark(saved);
+  
+    btnDark.addEventListener('click', ()=>setDark(!document.documentElement.classList.contains('dark')));
+  
+    btnRead.addEventListener('click', ()=>{
+      document.querySelector('.container').classList.toggle('compact');
+    });
+  
+    btnShare.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(location.href);
+        btnShare.textContent='Link Copied!';
+        setTimeout(()=>btnShare.textContent='Share',1500);
+      }catch{alert('Copy failed, share manually: '+location.href)}
+    });
+  
+    btnPrint?.addEventListener('click', ()=>window.print());
+    btnPdf?.addEventListener('click', ()=>window.print());
+  
+    document.querySelectorAll('.toc a').forEach(a=>{
+      a.addEventListener('click', e=>{
+        e.preventDefault();
+        const id=a.getAttribute('href').slice(1);
+        document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+      });
+    });
+  })();
+  
+  // Tombol Share
+document.getElementById("btn-share").addEventListener("click", async () => {
+    const shareData = {
+      title: "Why A.I. Should Make Parents Rethink Posting Photos of Their Children Online",
+      text: "An investigative piece on how AI reshapes privacy for families.",
+      url: window.location.href
+    };
+  
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        console.log("Artikel berhasil dibagikan!");
+      } else {
+        // fallback untuk desktop yang tidak support
+        navigator.clipboard.writeText(window.location.href);
+        alert("Link artikel sudah disalin ke clipboard!");
+      }
+    } catch (err) {
+      console.error("Gagal share:", err);
+    }
+  });
+  
+  // Toggle Dark/Light Mode
+const btnDark = document.getElementById("btn-dark");
+
+btnDark.addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+
+  // ubah teks tombol biar lebih interaktif
+  if (document.body.classList.contains("dark-mode")) {
+    btnDark.textContent = "Light Mode";
+  } else {
+    btnDark.textContent = "Dark Mode";
+  }
+});
+
+</script>
 </body>
 </html>
